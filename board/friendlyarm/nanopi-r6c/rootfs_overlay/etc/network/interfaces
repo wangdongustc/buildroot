@@ -1,0 +1,8 @@
+auto lo
+iface lo inet loopback
+
+auto wan
+iface wan inet dhcp
+
+auto lan
+iface lan inet dhcp
