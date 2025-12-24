@@ -1,0 +1,59 @@
+#!/bin/sh
+# Renaming the R6C interface according to the device shell silkscreen.
+
+DESC="R6C interface renaming"
+
+# Time to wait for the interface to appear before renaming.
+IF_WAIT_DELAY="${IF_WAIT_DELAY:-10}"
+
+wait_and_rename_interface() {
+	bus_info=$1
+	new_name=$2
+	wait_delay=${IF_WAIT_DELAY}
+	while [ $wait_delay -gt 0 ]; do
+		iface_path=$(find /sys/class/net -type l -exec sh -c '
+			for i; do
+				[ "$(basename "$(readlink -f "$i"/device)")" = "$0" ] && echo "$i"
+			done
+		' "$bus_info" {} + | head -n1)
+		if [ -n "$iface_path" ]; then
+			iface=$(basename "$iface_path")
+			ip link set "$iface" name "$new_name"
+			return $?
+		fi
+		sleep 1
+		wait_delay=$((wait_delay - 1))
+	done
+	printf "Timeout waiting for interface %s to appear.\n" "$bus_info"
+	return 1
+}
+
+case "$1" in
+	start)
+		printf "Starting %s: " "$DESC"
+		rename_allok=0
+		wait_and_rename_interface "fe1c0000.ethernet" "wan" || rename_allok=1
+		wait_and_rename_interface "0003:31:00.0" "lan" || rename_allok=1
+
+		if [ "$rename_allok" -eq 0 ]; then
+			echo "OK"
+		else
+			echo "FAIL"
+		fi
+		;;
+
+	stop)	;;
+
+	restart)
+		# Optional: Handle restart by calling start after stop
+		$0 stop
+		$0 start
+		;;
+
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac
+
+exit 0

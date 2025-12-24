@@ -19,3 +19,13 @@ if [ "${IF_WAIT_DELAY}" -a ! -e "/sys/class/net/${IFACE}" ]; then
     exit 1
 fi
 
+iface_name=$(realpath "/sys/class/net/${IFACE}")
+if [ -e "${iface_name}" ]; then
+    iface_info=$(echo "${iface_name}" | sed 's|.*platform/\(.*\)/net/.*|\1|')
+    if [ "${iface_info}" == "fe1c0000.ethernet" ]; then
+        ip link set "${IFACE}" name "wan"
+    elif [ "${iface_info}" == "a40c00000.pcie/pci0003:30/0003:30:00.0/0003:31:00.0" ]; then
+        ip link set "${IFACE}" name "lan"
+    fi
+fi
+

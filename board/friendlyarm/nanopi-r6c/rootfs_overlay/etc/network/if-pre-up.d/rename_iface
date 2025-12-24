@@ -1,0 +1,27 @@
+#!/bin/sh
+
+if [ -e "/sys/class/net/${IFACE}" ]; then
+	exit 0
+fi
+
+rename_interface() {
+	platform_info=$1
+	new_name=$2
+	iface=$(find /sys/class/net -type l -exec sh -c '
+	for i; do
+		[ "$(basename "$(readlink -f "$i"/device)")" = "$0" ] && basename "$i"
+	done
+	' "$platform_info" {} +)
+	if [ -n "$iface" ]; then
+		ip link set "$iface" name "$new_name"
+		printf "%s to %s" "$iface" "$new_name"
+	else
+		echo "$platform_info not found"
+	fi
+}
+
+if [ "${IFACE}" == "wan" ]; then
+	rename_interface fe1c0000.ethernet ${IFACE}
+elif [ "${IFACE}" == "lan" ]; then
+	rename_interface 0003:31:00.0 ${IFACE}
+fi
